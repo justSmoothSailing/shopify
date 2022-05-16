@@ -157,11 +157,32 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 	if !bl {
 		return nil, err
 	}
+	//Initialize all metadata values to 0 except for the username
+	metadata := Metadata{user.Username, 0, 0}
+	jsonFile, err := os.OpenFile(user.metadataPath, os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		return nil, err
+	}
+	defer func(jsonFile *os.File) {
+		err := jsonFile.Close()
+		if err != nil {
+		}
+	}(jsonFile)
+	//Append user to the array of users and update the json file
+	content, err := json.MarshalIndent(metadata, " ", " ")
+	if err != nil {
+		return nil, err
+	}
+	err = ioutil.WriteFile(f.userFilePersist, content, 0644)
+	if err != nil {
+		return nil, err
+	}
+
 	return &user, nil
 }
 
 //Creates a file that holds metadata for a particular User
-//@param: path      The path the metadata file will have
+//@param: path                //The path the metadata file will have
 //@return: bool, err         // returns true if file was created successfully or false and error if not
 func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -172,6 +193,7 @@ func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 			return false, errors.New("error creating metadata file in repository")
 		}
 	}
+
 	return true, nil
 }
 
