@@ -16,6 +16,17 @@ import (
 	"time"
 )
 
+//Struct that holds all information about the repository
+//Fields
+//userInfo: type map          //maps a username to its user struct
+//rootDir: type string        //directory path to root of directory
+//userMetadata: type map      //maps a username to its metadata
+//userPublicData: type map    //maps a username to an array of public images
+//rootDirExists: type boolean //if root directory was created correctly
+//userFileExists: type boolean//if the json file on users who created an account
+//userFilePersist: type string//json file of users who created an account
+//usersSoFar: type struct Users//struct with an array of all users
+
 type Filesystem struct {
 	userInfo        map[string]*User
 	rootDir         string
@@ -27,11 +38,24 @@ type Filesystem struct {
 	key             string
 	usersSoFar      Users
 }
+
+//Struct that holds metadata about the user repository
+//Field:
+//User: type string          //username of a user in the repository
+//StorageUsed: type int64    //length in bytes of a user folder
+//AmountOfFiles: type int64  //amount of images in a user folder
+
 type Metadata struct {
 	User          string `json:"user"`
 	StorageUsed   int64  `json:"storageUsed"`
 	AmountOfFiles int64  `json:"amountOfFiles"`
 }
+
+//Function that initializes a filesystem and populates the fields that are used
+//from metadata files for information used in functions
+//the metadata is used to verify users and use parts in other functions
+//@param NONE
+//return: *FileSystem, nil OR nil, error         //A pointer to a populated FileSystem(Or Repository)
 
 func InitFilesystem() (*Filesystem, error) {
 	var errorCaused error = nil
@@ -40,6 +64,7 @@ func InitFilesystem() (*Filesystem, error) {
 		userPublicData: make(map[string][]string), rootDirExists: false, userFileExists: false,
 		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}}
 	filesystem.key = randSeq(32)
+
 	//Check if root directory exists, If not create it
 	_, err := os.Stat(filesystem.rootDir)
 	if os.IsNotExist(err) {
@@ -48,6 +73,7 @@ func InitFilesystem() (*Filesystem, error) {
 			filesystem.rootDirExists = true
 		}
 	}
+
 	//Check if file of all current users exist, if not create it
 	_, err = os.Stat(filesystem.userFilePersist)
 	if os.IsNotExist(err) {
@@ -67,6 +93,7 @@ func InitFilesystem() (*Filesystem, error) {
 			errorCaused = err
 		}
 	}(jsonFile)
+
 	//Check if json file is empty, if so continue, else load all information
 	//into filesystem struct field UsersSoFar
 	fileInfo, _ := jsonFile.Stat()
@@ -74,15 +101,15 @@ func InitFilesystem() (*Filesystem, error) {
 		byteValue, _ := ioutil.ReadAll(jsonFile)
 		err = json.Unmarshal(byteValue, &filesystem.usersSoFar.AllUsers)
 		if err == nil {
-			var user User
 			for i := 0; i < len(filesystem.usersSoFar.AllUsers); i++ {
+				var user *User = new(User)
 				user.UserStorageUsage = filesystem.usersSoFar.AllUsers[i].UserStorageUsage
 				user.DirId = filesystem.usersSoFar.AllUsers[i].DirId
 				user.Password = filesystem.usersSoFar.AllUsers[i].Password
 				user.FirstName = filesystem.usersSoFar.AllUsers[i].FirstName
 				user.LastName = filesystem.usersSoFar.AllUsers[i].LastName
 				user.Username = filesystem.usersSoFar.AllUsers[i].Username
-				filesystem.userInfo[user.Username] = &user
+				filesystem.userInfo[filesystem.usersSoFar.AllUsers[i].Username] = user
 			}
 		} else {
 			errorCaused = errors.New("json file could not be parsed")
@@ -93,6 +120,12 @@ func InitFilesystem() (*Filesystem, error) {
 	}
 	return &filesystem, errorCaused
 }
+
+//Creates User and adds them to the filesystem, creates directory, and initializes metadata
+//@param uname              //username of the user
+//@param pword              //password supplied by the user
+//@param user               //original user of the call
+//@return *User, error      //if successful, returns pointer to User and nil, otherwise nil, error
 func (f *Filesystem) createUser(uname string, pword string, user User) (*User, error) {
 	var keys []byte
 	hpword := encrypt(keys, pword)
@@ -103,7 +136,7 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 	user.DirId = r.Uint32()
 	dirId := strconv.FormatInt(int64(user.DirId), 10)
 	result := "/" + dirId
-	user.metadataPath = f.rootDir + result + user.Username + ".json"
+	user.metadataPath = f.rootDir + result + ".json"
 	err := os.MkdirAll(f.rootDir+result, os.ModeDir)
 	if err != nil {
 		return nil, err
@@ -126,6 +159,10 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 	}
 	return &user, nil
 }
+
+//Creates a file that holds metadata for a particular User
+//@param: path      The path the metadata file will have
+//@return: bool, err         // returns true if file was created successfully or false and error if not
 func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -137,6 +174,10 @@ func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 	}
 	return true, nil
 }
+
+//Adds a new user to the filesystem
+//@param User               //Newly populated user
+//@return err               //nil if user was added properly, err if not
 func (f *Filesystem) addUser(user User) error {
 	var errorCause error
 	jsonFile, err := os.OpenFile(f.userFilePersist, os.O_APPEND|os.O_WRONLY, 0777)
@@ -162,6 +203,10 @@ func (f *Filesystem) addUser(user User) error {
 	return errorCause
 }
 
+//Add image to a user directory in the repository
+//@param img Image                 //The Image the user wants to add to their directory
+//@param uname string              //username of the user who is adding the Image
+//@return bool, error              //returns true, nil if image was added successfully OR false, error
 func (f *Filesystem) addImg(img Image, uname string) (bool, error) {
 	user, ok := f.userInfo[uname]
 	if !ok {

@@ -31,22 +31,6 @@ func TestInitFilesystem2(t *testing.T) {
 	//These Last checks work if you already have a populated
 	//JSON with these two keys
 	//If JSON is empty change to len(fs.userInfo) == 0
-	wuser, ok := fs.userInfo["whaddad"]
-	if ok != true {
-		t.Fatalf("user not added to Repository")
-	}
-	if wuser.Username != "whaddad" {
-		t.Fatalf("user name not parsed correctly")
-	}
-	if wuser.FirstName != "william" {
-		t.Fatalf("user first name not parsed correctly")
-	}
-	if wuser.LastName != "haddad" {
-		t.Fatalf("user last name not parsed correctly")
-	}
-	if wuser.UserStorageUsage != 0 {
-		t.Fatalf("user storage not parsed correctly")
-	}
 	juser, ok := fs.userInfo["jhaddad"]
 	if ok != true {
 		t.Fatalf("user not added to Repository")
@@ -63,10 +47,27 @@ func TestInitFilesystem2(t *testing.T) {
 	if juser.UserStorageUsage != 0 {
 		t.Fatalf("user storage not parsed correctly")
 	}
+	wuser, ok := fs.userInfo["whaddad"]
+	if ok != true {
+		t.Fatalf("user not added to Repository")
+	}
+	if wuser.Username != "whaddad" {
+		t.Fatalf("user name not parsed correctly")
+	}
+	if wuser.FirstName != "william" {
+		t.Fatalf("user first name not parsed correctly")
+	}
+	if wuser.LastName != "haddad" {
+		t.Fatalf("user last name not parsed correctly")
+	}
+	if wuser.UserStorageUsage != 0 {
+		t.Fatalf("user storage not parsed correctly")
+	}
 
 }
 
 // Test Should fail with a username already used
+/*
 func TestFilesystem_CreateUser(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
@@ -91,3 +92,5 @@ func TestFilesystem_CreateUser(t *testing.T) {
 	//Cannot check password or DirId since password is encrypted and
 	//DirId is a random 32 bit integer
 }
+
+*/

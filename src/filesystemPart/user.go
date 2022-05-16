@@ -7,10 +7,24 @@ import (
 	"strings"
 )
 
+//Users struct
+//Fields
+//AllUsers: type []Users              //Holds an array of all users who have directories in Repository
 type Users struct {
 	AllUsers []User `json:"users"`
 }
 
+//User Struct
+//Holds fields relative to each user.
+//Fields:
+//Username: type string               //username that was supplied by the user
+//Firstname: type string			  //first name supplied by the user
+//Lastname: type string				  //last name supplied by the user
+//Password: type string				  //initially supplied by the user but later encrypted by the file system
+//DirId: type uint32				  //directory id supplied by the filesystem
+//UserStorage: type int				  //supplied by the filesystem amount of storage used in bytes
+//ImagesIn Repo: type map			  //returns an Image when supplied the name of an Image
+//filesys: type *FileSystem           //
 type User struct {
 	Username         string           `json:"username"`
 	FirstName        string           `json:"firstName"`
@@ -23,12 +37,11 @@ type User struct {
 	metadataPath     string
 }
 
-//Initialize and Create User from
+// InitCreateUser initialize and create User
 //@param uname : string      //is the supplied username of the user
 //@param fname : string      //is the supplied lastname of the user
 //@param pword : string      //is the supplied password of the user
 //@param filesys: Filesystem //is a pointer to the filesystem
-
 func InitCreateUser(uname string, fname string, lname string, pword string, filesys *Filesystem) (*User, error) {
 	user := User{Username: uname, FirstName: fname, LastName: lname, Password: "", DirId: 0, UserStorageUsage: 0}
 	_, ok := filesys.userInfo[uname]
@@ -39,6 +52,8 @@ func InitCreateUser(uname string, fname string, lname string, pword string, file
 	return adduser, exists
 }
 
+// AddImageToRepository add the image to the repository with the help of the filesystem
+// @param path : the full path of the Image to be added
 func (u *User) AddImageToRepository(path string) (bool, error) {
 	//Check if Path is Valid
 	_, err := os.Stat(path)
