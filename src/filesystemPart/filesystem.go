@@ -173,7 +173,7 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 	if err != nil {
 		return nil, err
 	}
-	err = ioutil.WriteFile(f.userFilePersist, content, 0644)
+	err = ioutil.WriteFile(user.metadataPath, content, 0644)
 	if err != nil {
 		return nil, err
 	}
