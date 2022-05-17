@@ -1,14 +1,8 @@
 package filesystemPart
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/md5"
-	ro "crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -25,6 +19,7 @@ import (
 //rootDirExists: type boolean //if root directory was created correctly
 //userFileExists: type boolean//if the json file on users who created an account
 //userFilePersist: type string//json file of users who created an account
+//key: type []byte             //key in bytes
 //usersSoFar: type struct Users//struct with an array of all users
 
 type Filesystem struct {
@@ -35,7 +30,7 @@ type Filesystem struct {
 	rootDirExists   bool
 	userFileExists  bool
 	userFilePersist string
-	key             string
+	key             []byte
 	usersSoFar      Users
 }
 
@@ -51,6 +46,8 @@ type Metadata struct {
 	AmountOfFiles int64  `json:"amountOfFiles"`
 }
 
+const key = "super secret key no one knowssss"
+
 //Function that initializes a filesystem and populates the fields that are used
 //from metadata files for information used in functions
 //the metadata is used to verify users and use parts in other functions
@@ -63,7 +60,7 @@ func InitFilesystem() (*Filesystem, error) {
 		rootDir: "C:/Users/18645/Documents/temp/users", userMetadata: make(map[string]Metadata),
 		userPublicData: make(map[string][]string), rootDirExists: false, userFileExists: false,
 		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}}
-	filesystem.key = randSeq(32)
+	filesystem.key = []byte(key)
 
 	//Check if root directory exists, If not create it
 	_, err := os.Stat(filesystem.rootDir)
@@ -73,7 +70,6 @@ func InitFilesystem() (*Filesystem, error) {
 			filesystem.rootDirExists = true
 		}
 	}
-
 	//Check if file of all current users exist, if not create it
 	_, err = os.Stat(filesystem.userFilePersist)
 	if os.IsNotExist(err) {
@@ -98,11 +94,11 @@ func InitFilesystem() (*Filesystem, error) {
 	//into filesystem struct field UsersSoFar
 	fileInfo, _ := jsonFile.Stat()
 	if fileInfo.Size() > 0 {
-		byteValue, _ := ioutil.ReadAll(jsonFile)
+		byteValue, _ := ioutil.ReadFile(filesystem.userFilePersist)
 		err = json.Unmarshal(byteValue, &filesystem.usersSoFar.AllUsers)
 		if err == nil {
 			for i := 0; i < len(filesystem.usersSoFar.AllUsers); i++ {
-				var user *User = new(User)
+				var user = new(User)
 				user.UserStorageUsage = filesystem.usersSoFar.AllUsers[i].UserStorageUsage
 				user.DirId = filesystem.usersSoFar.AllUsers[i].DirId
 				user.Password = filesystem.usersSoFar.AllUsers[i].Password
@@ -127,10 +123,7 @@ func InitFilesystem() (*Filesystem, error) {
 //@param user               //original user of the call
 //@return *User, error      //if successful, returns pointer to User and nil, otherwise nil, error
 func (f *Filesystem) createUser(uname string, pword string, user User) (*User, error) {
-	var keys []byte
-	hpword := encrypt(keys, pword)
-	newPassword := hex.EncodeToString(hpword)
-	user.Password = newPassword
+	user.Password = pword
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	//used name of folder for designated user
 	user.DirId = r.Uint32()
@@ -169,7 +162,7 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 		}
 	}(jsonFile)
 	//Append user to the array of users and update the json file
-	content, err := json.MarshalIndent(metadata, " ", " ")
+	content, err := json.MarshalIndent(metadata, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +207,7 @@ func (f *Filesystem) addUser(user User) error {
 	}(jsonFile)
 	//Append user to the array of users and update the json file
 	f.usersSoFar.AllUsers = append(f.usersSoFar.AllUsers, user)
-	content, err := json.MarshalIndent(f.usersSoFar.AllUsers, " ", " ")
+	content, err := json.MarshalIndent(f.usersSoFar.AllUsers, "", "")
 	if err != nil {
 		errorCause = err
 	}
@@ -264,38 +257,45 @@ func (f *Filesystem) addImg(img Image, uname string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	err = ioutil.WriteFile(f.userFilePersist, content, 0644)
+	err = ioutil.WriteFile(user.metadataPath, content, 0644)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-func createHash(key string) string {
-	hasher := md5.New()
-	hasher.Write([]byte(key))
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-func encrypt(data []byte, passphrase string) []byte {
-	block, _ := aes.NewCipher([]byte(createHash(passphrase)))
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		panic(err.Error())
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(ro.Reader, nonce); err != nil {
-		panic(err.Error())
-	}
-	ciphertext := gcm.Seal(nonce, nonce, data, nil)
-	return ciphertext
-}
+//Doesn't seem to work ill base64 data at some input byte
+//func encrypt(key []byte, text []byte) ([]byte, error) {
+//	block, err := aes.NewCipher(key)
+//	if err != nil {
+//		return nil, err
+//	}
+//	b := base64.StdEncoding.EncodeToString(text)
+//	ciphertext := make([]byte, aes.BlockSize+len(b))
+//	iv := ciphertext[:aes.BlockSize]
+//	if _, err := io.ReadFull(ro.Reader, iv); err != nil {
+//		return nil, err
+//	}
+//	cfb := cipher.NewCFBEncrypter(block, iv)
+//	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
+//	return ciphertext, nil
+//}
+//
+//func decrypt(key []byte, text []byte) ([]byte, error) {
+//	block, err := aes.NewCipher(key)
+//	if err != nil {
+//		return nil, err
+//	}
+//	if len(text) < aes.BlockSize {
+//		return nil, errors.New("ciphertext too short")
+//	}
+//	iv := text[:aes.BlockSize]
+//	text = text[aes.BlockSize:]
+//	cfb := cipher.NewCFBDecrypter(block, iv)
+//	cfb.XORKeyStream(text, text)
+//	data, err := base64.StdEncoding.DecodeString(string(text))
+//	if err != nil {
+//		return nil, err
+//	}
+//	return data, nil
+//}

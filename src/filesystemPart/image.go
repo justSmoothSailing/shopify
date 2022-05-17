@@ -23,7 +23,7 @@ type Image struct {
 	permissions int
 }
 
-//Function that gets called from FileSystem to initialize all the values in the Image struct
+//Function that gets called from user to initialize all the values in the Image struct
 //@param pathname: full path to the image
 //@param pname: name of the image without extension
 //@param imgname: name of the image with extension

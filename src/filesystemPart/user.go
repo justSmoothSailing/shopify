@@ -67,13 +67,24 @@ func (u *User) AddImageToRepository(path string) (bool, error) {
 	if ok {
 		return false, errors.New("image with the same name exists")
 	}
+	//initialize all the fields of the Image
 	img, err := initImage(path, name, imageName, u.Username)
 	if err != nil {
 		return false, errors.New("error adding image to repository")
 	}
+	//let filesystem handle the rest (adding changing the metadata for the user and etc
 	bl, err := u.filesys.addImg(*img, u.Username)
 	if err != nil {
 		return false, err
 	}
 	return bl, err
+}
+
+//CheckUserAndGetUser if user exists then returns a pointer to the users else error
+//@param uname       username of the user
+//@param password    password of the user
+//@param f           pointer to the filesystem
+
+func CheckUserAndGetUser(passwordGiven string, username string, f *Filesystem) bool {
+	return false
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 )
 
+//Test if the initialization of the filesystem works properly
 func TestInitFilesystem(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
@@ -23,6 +24,8 @@ func TestInitFilesystem(t *testing.T) {
 		t.Fatalf("Json file was not created")
 	}
 }
+
+//Test if the users that were added were added properly with the proper values
 func TestInitFilesystem2(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
