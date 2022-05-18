@@ -63,7 +63,6 @@ func InitFilesystem() (*Filesystem, error) {
 		userPublicData: make(map[string][]string), rootDirExists: false, userFileExists: false,
 		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}}
 	filesystem.key = []byte(key)
-
 	//Check if root directory exists, If not create it
 	_, err := os.Stat(filesystem.rootDir)
 	if os.IsNotExist(err) {
@@ -71,14 +70,32 @@ func InitFilesystem() (*Filesystem, error) {
 		if errorCaused == nil {
 			filesystem.rootDirExists = true
 		}
+		if errorCaused != nil {
+			return nil, errorCaused
+		}
 	}
+	// initialize and populate user data into filesystem
+	fs, err := initUserData(&filesystem)
+	if err != nil {
+		return nil, err
+	}
+	return fs, nil
+}
+
+// initUserData initialize and populate filesystem with all user data
+//@param filesystem         pointer to an instance of a filesystem
+func initUserData(filesystem *Filesystem) (*Filesystem, error) {
+	var errorCaused error = nil
 	//Check if file of all current users exist, if not create it
-	_, err = os.Stat(filesystem.userFilePersist)
+	_, err := os.Stat(filesystem.userFilePersist)
 	if os.IsNotExist(err) {
 		_, errorCaused = os.Create(filesystem.userFilePersist)
 		_, err := os.Stat(filesystem.userFilePersist)
 		if !os.IsNotExist(err) {
 			filesystem.userFileExists = true
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 	jsonFile, err := os.Open(filesystem.userFilePersist)
@@ -107,7 +124,7 @@ func InitFilesystem() (*Filesystem, error) {
 				user.FirstName = filesystem.usersSoFar.AllUsers[i].FirstName
 				user.LastName = filesystem.usersSoFar.AllUsers[i].LastName
 				user.Username = filesystem.usersSoFar.AllUsers[i].Username
-				user.filesys = &filesystem
+				user.filesys = filesystem
 				dirId := strconv.FormatInt(int64(user.DirId), 10)
 				result := "/" + dirId
 				user.metadataPath = filesystem.rootDir + result + ".json"
@@ -124,8 +141,7 @@ func InitFilesystem() (*Filesystem, error) {
 	if errorCaused != nil {
 		return nil, errorCaused
 	}
-
-	return &filesystem, errorCaused
+	return filesystem, nil
 }
 
 //Creates User and adds them to the filesystem, creates directory, and initializes metadata
