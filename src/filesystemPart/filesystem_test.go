@@ -26,47 +26,78 @@ func TestInitFilesystem(t *testing.T) {
 }
 
 //Test if the users that were added were added properly with the proper values
-func TestInitFilesystem2(t *testing.T) {
+//func TestInitFilesystem2(t *testing.T) {
+//	fs, err := InitFilesystem()
+//	if err != nil {
+//		t.Fatalf("Failed to Initialize Repository %v", err)
+//	}
+//	//These Last checks work if you already have a populated
+//	//JSON with these two keys
+//	//If JSON is empty change to len(fs.userInfo) == 0
+//	juser, ok := fs.userInfo["jhaddad"]
+//	if ok != true {
+//		t.Fatalf("user not added to Repository")
+//	}
+//	if juser.Username != "jhaddad" {
+//		t.Fatalf("user name not parsed correctly")
+//	}
+//	if juser.FirstName != "james" {
+//		t.Fatalf("user first name not parsed correctly")
+//	}
+//	if juser.LastName != "haddad" {
+//		t.Fatalf("user last name not parsed correctly")
+//	}
+//	if juser.UserStorageUsage != 0 {
+//		t.Fatalf("user storage not parsed correctly")
+//	}
+//	wuser, ok := fs.userInfo["whaddad"]
+//	if ok != true {
+//		t.Fatalf("user not added to Repository")
+//	}
+//	if wuser.Username != "whaddad" {
+//		t.Fatalf("user name not parsed correctly")
+//	}
+//	if wuser.FirstName != "william" {
+//		t.Fatalf("user first name not parsed correctly")
+//	}
+//	if wuser.LastName != "haddad" {
+//		t.Fatalf("user last name not parsed correctly")
+//	}
+//	if wuser.UserStorageUsage != 0 {
+//		t.Fatalf("user storage not parsed correctly")
+//	}
+//
+//}
+
+// Keep getting this error but I tried sprintf and string(var) and formatInt
+//still getting the same error
+// This test should find beginning.png and delete it from the user
+// repository of user: ad
+// TODO: Check if this works after build
+func TestUser_AddImageToRepository(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
 	}
-	//These Last checks work if you already have a populated
-	//JSON with these two keys
-	//If JSON is empty change to len(fs.userInfo) == 0
-	juser, ok := fs.userInfo["jhaddad"]
-	if ok != true {
-		t.Fatalf("user not added to Repository")
+	user, ok := fs.userInfo["ad"]
+	if !ok {
+		t.Fatalf("User should have existed but does not")
 	}
-	if juser.Username != "jhaddad" {
-		t.Fatalf("user name not parsed correctly")
+	user.filesys = fs
+	// Had to initialize ImagesInRepo or get nil pointer exception
+	user.ImagesInRepo = make(map[string]*Image)
+	_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\beginning.png")
+	if err != nil {
+		t.Fatalf("failed to add image to repositor")
 	}
-	if juser.FirstName != "james" {
-		t.Fatalf("user first name not parsed correctly")
+	img, ok := user.ImagesInRepo["beginning"]
+	if !ok {
+		t.Fatal("image not found in users map")
 	}
-	if juser.LastName != "haddad" {
-		t.Fatalf("user last name not parsed correctly")
+	_, err = os.Stat(img.path)
+	if err != nil {
+		t.Fatalf("failed to add image to repository")
 	}
-	if juser.UserStorageUsage != 0 {
-		t.Fatalf("user storage not parsed correctly")
-	}
-	wuser, ok := fs.userInfo["whaddad"]
-	if ok != true {
-		t.Fatalf("user not added to Repository")
-	}
-	if wuser.Username != "whaddad" {
-		t.Fatalf("user name not parsed correctly")
-	}
-	if wuser.FirstName != "william" {
-		t.Fatalf("user first name not parsed correctly")
-	}
-	if wuser.LastName != "haddad" {
-		t.Fatalf("user last name not parsed correctly")
-	}
-	if wuser.UserStorageUsage != 0 {
-		t.Fatalf("user storage not parsed correctly")
-	}
-
 }
 
 // Test Should fail with a username already used

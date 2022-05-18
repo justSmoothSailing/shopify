@@ -31,10 +31,19 @@ func main() {
 				fmt.Scanln(&signpwd)
 				signpwd = strings.TrimSpace(signpwd)
 				signpwd = strings.ToLower(signpwd)
-				bl := filesystemPart.CheckUserAndGetUser(signpwd, signname, filesystem)
-				if bl == false {
+				user, err := filesystemPart.CheckUserAndGetUser(signpwd, signname, filesystem)
+				if err != nil {
 					return
 				}
+				bl, err := user.AddImageToRepository("C:/Users/18645/Pictures/Saved Pictures/beginning.png")
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				if bl == false {
+					fmt.Println("error adding image")
+				}
+				return
 			}
 		case "n":
 			var username string

@@ -3,6 +3,8 @@ package filesystemPart
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -25,7 +27,7 @@ import (
 type Filesystem struct {
 	userInfo        map[string]*User
 	rootDir         string
-	userMetadata    map[string]Metadata
+	userMetadata    map[string]*Metadata
 	userPublicData  map[string][]string
 	rootDirExists   bool
 	userFileExists  bool
@@ -57,7 +59,7 @@ const key = "super secret key no one knowssss"
 func InitFilesystem() (*Filesystem, error) {
 	var errorCaused error = nil
 	filesystem := Filesystem{userInfo: make(map[string]*User),
-		rootDir: "C:/Users/18645/Documents/temp/users", userMetadata: make(map[string]Metadata),
+		rootDir: "C:/Users/18645/Documents/temp/users", userMetadata: make(map[string]*Metadata),
 		userPublicData: make(map[string][]string), rootDirExists: false, userFileExists: false,
 		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}}
 	filesystem.key = []byte(key)
@@ -105,7 +107,15 @@ func InitFilesystem() (*Filesystem, error) {
 				user.FirstName = filesystem.usersSoFar.AllUsers[i].FirstName
 				user.LastName = filesystem.usersSoFar.AllUsers[i].LastName
 				user.Username = filesystem.usersSoFar.AllUsers[i].Username
+				user.filesys = &filesystem
+				dirId := strconv.FormatInt(int64(user.DirId), 10)
+				result := "/" + dirId
+				user.metadataPath = filesystem.rootDir + result + ".json"
 				filesystem.userInfo[filesystem.usersSoFar.AllUsers[i].Username] = user
+				_, err := filesystem.initMetadata(user)
+				if err != nil {
+					return nil, err
+				}
 			}
 		} else {
 			errorCaused = errors.New("json file could not be parsed")
@@ -114,6 +124,7 @@ func InitFilesystem() (*Filesystem, error) {
 	if errorCaused != nil {
 		return nil, errorCaused
 	}
+
 	return &filesystem, errorCaused
 }
 
@@ -152,6 +163,7 @@ func (f *Filesystem) createUser(uname string, pword string, user User) (*User, e
 	}
 	//Initialize all metadata values to 0 except for the username
 	metadata := Metadata{user.Username, 0, 0}
+	f.userMetadata[user.Username] = &metadata
 	jsonFile, err := os.OpenFile(user.metadataPath, os.O_APPEND|os.O_WRONLY, 0777)
 	if err != nil {
 		return nil, err
@@ -189,6 +201,25 @@ func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 
 	return true, nil
 }
+func (f *Filesystem) initMetadata(user *User) (bool, error) {
+	jsonFile, err := os.Open(f.userFilePersist)
+	if err != nil {
+		return false, err
+	}
+	defer func(jsonFile *os.File) {
+		err := jsonFile.Close()
+		if err != nil {
+		}
+	}(jsonFile)
+	var metadata Metadata
+	byteValue, _ := ioutil.ReadFile(user.metadataPath)
+	err = json.Unmarshal(byteValue, &metadata)
+	if err != nil {
+		return false, errors.New("json unmarshal went wrong")
+	}
+	f.userMetadata[user.Username] = &metadata
+	return true, nil
+}
 
 //Adds a new user to the filesystem
 //@param User               //Newly populated user
@@ -222,20 +253,53 @@ func (f *Filesystem) addUser(user User) error {
 //@param img Image                 //The Image the user wants to add to their directory
 //@param uname string              //username of the user who is adding the Image
 //@return bool, error              //returns true, nil if image was added successfully OR false, error
-func (f *Filesystem) addImg(img Image, uname string) (bool, error) {
+func (f *Filesystem) addImg(img *Image, uname string) (bool, error) {
 	user, ok := f.userInfo[uname]
 	if !ok {
 		return false, errors.New("could not add image to repository: user not found")
 	}
-	newPathname := f.rootDir + strconv.FormatInt(int64(user.DirId), 10) + img.nameExt
-	err := os.Rename(img.origPath, newPathname)
+	newPathname := f.rootDir + "/" + strconv.FormatInt(int64(user.DirId), 10) + "/" + img.nameExt
+	sourceFileStat, err := os.Stat(img.origPath)
 	if err != nil {
 		return false, err
 	}
-	_, err = os.Stat(newPathname)
-	if err != nil {
-		return false, errors.New("failed to move image to repository")
+
+	if !sourceFileStat.Mode().IsRegular() {
+		return false, fmt.Errorf("%s is not a regular file", img.origPath)
 	}
+
+	source, err := os.Open(img.origPath)
+	if err != nil {
+		return false, err
+	}
+	defer func(source *os.File) {
+		err := source.Close()
+		if err != nil {
+		}
+	}(source)
+
+	destination, err := os.Create(newPathname)
+	if err != nil {
+		return false, err
+	}
+	defer func(destination *os.File) {
+		err := destination.Close()
+		if err != nil {
+
+		}
+	}(destination)
+	_, err = io.Copy(destination, source)
+	if err != nil {
+		return false, err
+	}
+	//err := os.Rename(img.origPath, newPathname)
+	//if err != nil {
+	//	return false, err
+	//}
+	//_, err = os.Stat(newPathname)
+	//if err != nil {
+	//	return false, errors.New("failed to move image to repository")
+	//}
 	img.path = newPathname
 	userdata, ok := f.userMetadata[user.Username]
 	if !ok {
@@ -252,15 +316,17 @@ func (f *Filesystem) addImg(img Image, uname string) (bool, error) {
 		if err != nil {
 		}
 	}(jsonFile)
-	//Append user to the array of users and update the json file
+	// Update the metadata of user after adding the image to user folder
 	content, err := json.MarshalIndent(userdata, " ", " ")
 	if err != nil {
 		return false, err
 	}
+	// Write the new metadata of user to user metadata json
 	err = ioutil.WriteFile(user.metadataPath, content, 0644)
 	if err != nil {
 		return false, err
 	}
+	user.ImagesInRepo[img.name] = img
 	return true, nil
 }
 
