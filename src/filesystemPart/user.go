@@ -14,6 +14,10 @@ type Users struct {
 	AllUsers []User `json:"users"`
 }
 
+type Images struct {
+	AllImages []Image `json:"images"`
+}
+
 //User Struct
 //Holds fields relative to each user.
 //Fields:
@@ -33,6 +37,8 @@ type User struct {
 	DirId            uint32            `json:"DirId"`
 	UserStorageUsage int               `json:"UserStorageUsage"`
 	ImagesInRepo     map[string]*Image `json:"imagesInRepo"`
+	ImgPath          string            `json:"ImgPath"`
+	ImgData          Images
 	filesys          *Filesystem
 	metadataPath     string
 }
@@ -43,12 +49,12 @@ type User struct {
 //@param pword : string      //is the supplied password of the user
 //@param filesys: Filesystem //is a pointer to the filesystem
 func InitCreateUser(uname string, fname string, lname string, pword string, filesys *Filesystem) (*User, error) {
-	user := User{Username: uname, FirstName: fname, LastName: lname, Password: "", DirId: 0, UserStorageUsage: 0, ImagesInRepo: make(map[string]*Image), filesys: filesys}
+	user := User{Username: uname, FirstName: fname, LastName: lname, Password: "", DirId: 0, UserStorageUsage: 0, ImagesInRepo: make(map[string]*Image), filesys: filesys, ImgData: Images{}}
 	_, ok := filesys.userInfo[uname]
 	if ok {
 		return nil, errors.New("username already exists")
 	}
-	adduser, exists := filesys.createUser(uname, pword, user)
+	adduser, exists := filesys.createUser(uname, pword, &user)
 	return adduser, exists
 }
 

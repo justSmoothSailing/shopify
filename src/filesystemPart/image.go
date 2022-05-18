@@ -14,13 +14,13 @@ import (
 //owner: type string          //owner of the image (User.username)
 //permissions: type int       //public or private depending on the user preferences
 type Image struct {
-	name        string
-	size        int64
-	path        string
-	origPath    string
-	nameExt     string
-	owner       string
-	permissions int
+	Name        string `json:"name"`
+	Size        int64  `json:"size"`
+	Path        string `json:"path"`
+	OrigPath    string `json:"origPath"`
+	NameExt     string `json:"nameExt"`
+	Owner       string `json:"owner"`
+	Permissions int    `json:"permissions"`
 }
 
 //Function that gets called from user to initialize all the values in the Image struct
@@ -31,15 +31,15 @@ type Image struct {
 //@return: returns a pointer to an Image and nil OR nil and error
 func initImage(pathname string, pname string, imgname string, imgOwner string) (*Image, error) {
 	img := Image{}
-	img.origPath = pathname
-	img.nameExt = imgname
-	img.name = pname
+	img.OrigPath = pathname
+	img.NameExt = imgname
+	img.Name = pname
 	info, err := os.Stat(pathname)
 	if err != nil {
 		return nil, errors.New("image has a size of zero")
 	}
-	img.size = info.Size()
-	img.owner = imgOwner
-	img.permissions = 1
+	img.Size = info.Size()
+	img.Owner = imgOwner
+	img.Permissions = 1
 	return &img, nil
 }
