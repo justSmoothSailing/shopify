@@ -96,6 +96,7 @@ func (u *User) AddImageToRepository(path string) (bool, error) {
 
 // DeleteImage delete image from user repository
 //@param name     name of image without the extension
+//TODO: Not sure if I should check if the Image exists in the filesystem or here
 func (u *User) DeleteImage(name string) (bool, error) {
 	img, ok := u.ImagesInRepo[name]
 	if !ok {
@@ -106,6 +107,15 @@ func (u *User) DeleteImage(name string) (bool, error) {
 		return false, err
 	}
 
+	return true, nil
+}
+
+//RemoveMyUserAccount delete user account and all metadata from the repository
+func (u *User) RemoveMyUserAccount() (bool, error) {
+	_, err := u.filesys.removeUser(u)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 

@@ -36,12 +36,11 @@ type Filesystem struct {
 	usersSoFar      Users
 }
 
-//Struct that holds metadata about the user repository
+// Metadata Struct that holds metadata about the user repository
 //Field:
 //User: type string          //username of a user in the repository
 //StorageUsed: type int64    //length in bytes of a user folder
 //AmountOfFiles: type int64  //amount of images in a user folder
-
 type Metadata struct {
 	User          string `json:"user"`
 	StorageUsed   int64  `json:"storageUsed"`
@@ -50,12 +49,11 @@ type Metadata struct {
 
 const key = "super secret key no one knowssss"
 
-//Function that initializes a filesystem and populates the fields that are used
+// InitFilesystem Function that initializes a filesystem and populates the fields that are used
 //from metadata files for information used in functions
 //the metadata is used to verify users and use parts in other functions
 //@param NONE
 //return: *FileSystem, nil OR nil, error         //A pointer to a populated FileSystem(Or Repository)
-
 func InitFilesystem() (*Filesystem, error) {
 	var errorCaused error = nil
 	filesystem := Filesystem{userInfo: make(map[string]*User),
@@ -202,7 +200,7 @@ func (f *Filesystem) createUser(uname string, pword string, user *User) (*User, 
 		if err != nil {
 		}
 	}(jsonFile)
-	//Append user to the array of users and update the json file
+	//update the metadata json file
 	content, err := json.MarshalIndent(metadata, "", "")
 	if err != nil {
 		return nil, err
@@ -319,8 +317,15 @@ func (f *Filesystem) initImgData(user *User) (bool, error) {
 //removeIndex             remove an element from a particular index and return the slice without it
 //@param img              original slice
 //@param index            index to remove
-func removeIndex(img []Image, index int) []Image {
+func removeImageIndex(img []Image, index int) []Image {
 	return append(img[:index], img[index+1:]...)
+}
+
+//removeIndex             remove an element from a particular index and return the slice without it
+//@param user              original slice
+//@param index            index to remove
+func removeUserIndex(user []User, index int) []User {
+	return append(user[:index], user[index+1:]...)
 }
 
 //deleteImgData              delete an Image from a user repository
@@ -357,7 +362,7 @@ func (f *Filesystem) deleteImgData(user *User, img *Image) (bool, error) {
 			index = i
 		}
 	}
-	user.ImgData.AllImages = removeIndex(user.ImgData.AllImages, index)
+	user.ImgData.AllImages = removeImageIndex(user.ImgData.AllImages, index)
 	_, err = os.Create(user.ImgPath)
 	if err != nil {
 		return false, err
@@ -425,15 +430,14 @@ func (f *Filesystem) addImg(img *Image, uname string) (bool, error) {
 		return false, errors.New("could not add image to repository: user not found")
 	}
 	newPathname := f.rootDir + "/" + strconv.FormatInt(int64(user.DirId), 10) + "/" + img.NameExt
-	sourceFileStat, err := os.Stat(img.OrigPath)
+	imageFile, err := os.Stat(img.OrigPath)
 	if err != nil {
 		return false, err
 	}
 
-	if !sourceFileStat.Mode().IsRegular() {
+	if !imageFile.Mode().IsRegular() {
 		return false, fmt.Errorf("%s is not a regular file", img.OrigPath)
 	}
-
 	source, err := os.Open(img.OrigPath)
 	if err != nil {
 		return false, err
@@ -443,7 +447,6 @@ func (f *Filesystem) addImg(img *Image, uname string) (bool, error) {
 		if err != nil {
 		}
 	}(source)
-
 	destination, err := os.Create(newPathname)
 	if err != nil {
 		return false, err
@@ -508,38 +511,48 @@ func (f *Filesystem) addImg(img *Image, uname string) (bool, error) {
 	return true, nil
 }
 
-//Doesn't seem to work ill base64 data at some input byte
-//func encrypt(key []byte, text []byte) ([]byte, error) {
-//	block, err := aes.NewCipher(key)
-//	if err != nil {
-//		return nil, err
-//	}
-//	b := base64.StdEncoding.EncodeToString(text)
-//	ciphertext := make([]byte, aes.BlockSize+len(b))
-//	iv := ciphertext[:aes.BlockSize]
-//	if _, err := io.ReadFull(ro.Reader, iv); err != nil {
-//		return nil, err
-//	}
-//	cfb := cipher.NewCFBEncrypter(block, iv)
-//	cfb.XORKeyStream(ciphertext[aes.BlockSize:], []byte(b))
-//	return ciphertext, nil
-//}
-//
-//func decrypt(key []byte, text []byte) ([]byte, error) {
-//	block, err := aes.NewCipher(key)
-//	if err != nil {
-//		return nil, err
-//	}
-//	if len(text) < aes.BlockSize {
-//		return nil, errors.New("ciphertext too short")
-//	}
-//	iv := text[:aes.BlockSize]
-//	text = text[aes.BlockSize:]
-//	cfb := cipher.NewCFBDecrypter(block, iv)
-//	cfb.XORKeyStream(text, text)
-//	data, err := base64.StdEncoding.DecodeString(string(text))
-//	if err != nil {
-//		return nil, err
-//	}
-//	return data, nil
-//}
+//removeUser removes user from the filesystem and all metadata
+//@param u: type *User        pointer to the user to be deleted
+func (f *Filesystem) removeUser(u *User) (bool, error) {
+	_, ok := f.userInfo[u.Username]
+	if !ok {
+		return false, errors.New("user not found")
+	} else {
+		delete(f.userInfo, u.Username)
+	}
+	var index int
+	for i, check := range f.usersSoFar.AllUsers {
+		if check.Username == u.Username {
+			index = i
+			break
+		}
+	}
+	f.usersSoFar.AllUsers = removeUserIndex(f.usersSoFar.AllUsers, index)
+	jsonFile, err := os.OpenFile(f.userFilePersist, os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		return false, err
+	}
+
+	//Append image to the array of images and update the json file
+	content, err := json.MarshalIndent(f.usersSoFar.AllUsers, "", "")
+	if err != nil {
+		return false, err
+	}
+	err = ioutil.WriteFile(f.userFilePersist, content, 0644)
+	if err != nil {
+		return false, err
+	}
+	err = jsonFile.Close()
+	if err != nil {
+		return false, err
+	}
+	err = os.Remove(u.filesys.rootDir + "/" + strconv.FormatInt(int64(u.DirId), 10) + ".json")
+	if err != nil {
+		return false, errors.New("error deleting user metadata")
+	}
+	err = os.RemoveAll(u.filesys.rootDir + "/" + strconv.FormatInt(int64(u.DirId), 10))
+	if err != nil {
+		return false, errors.New("error deleting user directory")
+	}
+	return true, nil
+}

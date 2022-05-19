@@ -26,19 +26,21 @@ func main() {
 				fmt.Println("username")
 				fmt.Scanln(&signname)
 				signname = strings.TrimSpace(signname)
-				signname = strings.ToLower(signname)
+				//signname = strings.ToLower(signname)
 				fmt.Println("password")
 				fmt.Scanln(&signpwd)
 				signpwd = strings.TrimSpace(signpwd)
 				signpwd = strings.ToLower(signpwd)
 				user, err := filesystemPart.CheckUserAndGetUser(signpwd, signname, filesystem)
 				if err != nil {
+					fmt.Println("Wrong password")
 					return
 				}
-				_, err = user.DeleteImage("beginning")
+				_, err = user.RemoveMyUserAccount()
+				//_, err = user.DeleteImage("beginning")
 				//_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\goland.png")
 				if err != nil {
-					fmt.Println("not working for add images")
+					fmt.Println("not working for deleting user")
 					return
 				}
 				return
