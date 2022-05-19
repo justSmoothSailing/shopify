@@ -35,9 +35,10 @@ func main() {
 				if err != nil {
 					return
 				}
-				_, ok := user.ImagesInRepo["beginning"]
-				if ok == true {
-					fmt.Println("map working for imgages")
+				_, err = user.DeleteImage("beginning")
+				//_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\goland.png")
+				if err != nil {
+					fmt.Println("not working for add images")
 					return
 				}
 				return

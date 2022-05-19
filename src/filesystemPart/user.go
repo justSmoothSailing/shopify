@@ -9,11 +9,14 @@ import (
 
 //Users struct
 //Fields
-//AllUsers: type []Users              //Holds an array of all users who have directories in Repository
+//AllUsers: type []User              //Holds an array of all users who have directories in Repository
 type Users struct {
 	AllUsers []User `json:"users"`
 }
 
+//Images struct
+//Fields
+//AllImages: type []Image             //Holds an array of all images for a user
 type Images struct {
 	AllImages []Image `json:"images"`
 }
@@ -22,13 +25,14 @@ type Images struct {
 //Holds fields relative to each user.
 //Fields:
 //Username: type string               //username that was supplied by the user
-//Firstname: type string			  //first name supplied by the user
-//Lastname: type string				  //last name supplied by the user
+//FirstName: type string			  //first name supplied by the user
+//LastName: type string				  //last name supplied by the user
 //Password: type string				  //initially supplied by the user but later encrypted by the file system
 //DirId: type uint32				  //directory id supplied by the filesystem
-//UserStorage: type int				  //supplied by the filesystem amount of storage used in bytes
-//ImagesIn Repo: type map			  //returns an Image when supplied the name of an Image
-//filesys: type *FileSystem           //
+//UserStorageUsage: type int		  //supplied by the filesystem amount of storage used in bytes
+//ImagesInRepo: type map			  //returns an Image when supplied the name of an Image
+//filesys: type *FileSystem           // pointer to an instance of a filesystem
+//metadataPath: type string           //absolute path for user metadata
 type User struct {
 	Username         string            `json:"username"`
 	FirstName        string            `json:"firstName"`
@@ -90,17 +94,20 @@ func (u *User) AddImageToRepository(path string) (bool, error) {
 	return bl, err
 }
 
-//func (u *User) DeleteImage(name string) (bool, error) {
-//	img, ok := u.ImagesInRepo[name]
-//	if !ok {
-//		return false, errors.New("image not in repository")
-//	}
-//	err := os.Remove(u.filesys.rootDir + "/" + string(u.DirId) + "/" + img.nameExt)
-//	if err != nil {
-//		return false, errors.New("issue deleting image from repository")
-//	}
-//	return true, nil
-//}
+// DeleteImage delete image from user repository
+//@param name     name of image without the extension
+func (u *User) DeleteImage(name string) (bool, error) {
+	img, ok := u.ImagesInRepo[name]
+	if !ok {
+		return false, errors.New("image not in repository")
+	}
+	_, err := u.filesys.deleteImgData(u, img)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
 
 //CheckUserAndGetUser if user exists then returns a pointer to the users else error
 //@param uname       username of the user

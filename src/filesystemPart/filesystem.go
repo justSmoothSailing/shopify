@@ -129,6 +129,7 @@ func initUserData(filesystem *Filesystem) (*Filesystem, error) {
 				result := "/" + dirId
 				user.metadataPath = filesystem.rootDir + result + ".json"
 				user.ImgData = Images{}
+				user.ImagesInRepo = make(map[string]*Image)
 				user.ImgPath = filesystem.usersSoFar.AllUsers[i].ImgPath
 				filesystem.userInfo[filesystem.usersSoFar.AllUsers[i].Username] = user
 				_, err := filesystem.initMetadata(user)
@@ -229,6 +230,10 @@ func (f *Filesystem) createUserMetadata(path string) (bool, error) {
 
 	return true, nil
 }
+
+//Creates a file that holds metadata about the images in the user's repository
+//@param: path     path to metadata file
+//@return: bool, err
 func (f *Filesystem) createUserImgData(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -240,6 +245,9 @@ func (f *Filesystem) createUserImgData(path string) (bool, error) {
 	}
 	return true, nil
 }
+
+// initMetaData initialize and populate filesystem with all user data
+//@param user         pointer to an instance of a user
 func (f *Filesystem) initMetadata(user *User) (bool, error) {
 	jsonFile, err := os.Open(f.userFilePersist)
 	if err != nil {
@@ -260,6 +268,8 @@ func (f *Filesystem) initMetadata(user *User) (bool, error) {
 	return true, nil
 }
 
+// initImgData initialize and populate filesystem with all Image data
+//@param filesystem         pointer to an instance of a filesystem
 func (f *Filesystem) initImgData(user *User) (bool, error) {
 	_, err := os.Stat(user.ImgPath)
 	if os.IsNotExist(err) {
@@ -289,6 +299,7 @@ func (f *Filesystem) initImgData(user *User) (bool, error) {
 		}
 		err = json.Unmarshal(byteValue, &user.ImgData.AllImages)
 		if err == nil {
+			user.ImagesInRepo = make(map[string]*Image)
 			for i := 0; i < len(user.ImgData.AllImages); i++ {
 				var img = new(Image)
 				img.Name = user.ImgData.AllImages[i].Name
@@ -298,10 +309,80 @@ func (f *Filesystem) initImgData(user *User) (bool, error) {
 				img.Permissions = user.ImgData.AllImages[i].Permissions
 				img.OrigPath = user.ImgData.AllImages[i].OrigPath
 				img.Owner = user.ImgData.AllImages[i].Owner
-				user.ImagesInRepo = make(map[string]*Image)
 				user.ImagesInRepo[img.Name] = img
 			}
 		}
+	}
+	return true, nil
+}
+
+//removeIndex             remove an element from a particular index and return the slice without it
+//@param img              original slice
+//@param index            index to remove
+func removeIndex(img []Image, index int) []Image {
+	return append(img[:index], img[index+1:]...)
+}
+
+//deleteImgData              delete an Image from a user repository
+//@param user:               pointer to the User of the repository
+//@param img:                pointer to the Image to be deleted
+func (f *Filesystem) deleteImgData(user *User, img *Image) (bool, error) {
+	metadata := f.userMetadata[user.Username]
+	metadata.StorageUsed -= img.Size
+	metadata.AmountOfFiles -= 1
+	jsonFile, err := os.OpenFile(user.metadataPath, os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		return false, err
+	}
+	defer func(jsonFile *os.File) {
+		err := jsonFile.Close()
+		if err != nil {
+		}
+	}(jsonFile)
+	//Append user to the array of users and update the json file
+	content, err := json.MarshalIndent(*metadata, "", "")
+	if err != nil {
+		return false, err
+	}
+	err = ioutil.WriteFile(user.metadataPath, content, 0644)
+	if err != nil {
+		return false, err
+	}
+
+	name := img.Name
+	delete(user.ImagesInRepo, name)
+	var index int
+	for i, image := range user.ImgData.AllImages {
+		if image.Name == name {
+			index = i
+		}
+	}
+	user.ImgData.AllImages = removeIndex(user.ImgData.AllImages, index)
+	_, err = os.Create(user.ImgPath)
+	if err != nil {
+		return false, err
+	}
+	jsonFile, err = os.OpenFile(user.ImgPath, os.O_APPEND|os.O_WRONLY, 0777)
+	if err != nil {
+		return false, err
+	}
+	defer func(jsonFile *os.File) {
+		err := jsonFile.Close()
+		if err != nil {
+		}
+	}(jsonFile)
+	//Append image to the array of images and update the json file
+	content, err = json.MarshalIndent(user.ImgData.AllImages, "", "")
+	if err != nil {
+		return false, err
+	}
+	err = ioutil.WriteFile(user.ImgPath, content, 0644)
+	if err != nil {
+		return false, err
+	}
+	err = os.Remove(user.filesys.rootDir + "/" + strconv.FormatInt(int64(user.DirId), 10) + "/" + img.NameExt)
+	if err != nil {
+		return false, errors.New("error deleting image")
 	}
 	return true, nil
 }
@@ -377,14 +458,6 @@ func (f *Filesystem) addImg(img *Image, uname string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	//err := os.Rename(img.origPath, newPathname)
-	//if err != nil {
-	//	return false, err
-	//}
-	//_, err = os.Stat(newPathname)
-	//if err != nil {
-	//	return false, errors.New("failed to move image to repository")
-	//}
 	img.Path = newPathname
 	userdata, ok := f.userMetadata[user.Username]
 	if !ok {
