@@ -64,6 +64,7 @@ func TestInitFilesystem2(t *testing.T) {
 // This test should find goland.png and delete it from the user
 // repository of user: ad
 // TODO: Check if this works after build (WORKED!)
+
 func TestUser_AddImageToRepository(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {

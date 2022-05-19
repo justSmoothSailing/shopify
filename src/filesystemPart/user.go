@@ -2,8 +2,11 @@ package filesystemPart
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -115,6 +118,17 @@ func (u *User) RemoveMyUserAccount() (bool, error) {
 	_, err := u.filesys.removeUser(u)
 	if err != nil {
 		return false, err
+	}
+	return true, nil
+}
+
+func (u *User) ListImages() (bool, error) {
+	files, err := ioutil.ReadDir(u.filesys.rootDir + "/" + strconv.FormatInt(int64(u.DirId), 10))
+	if err != nil {
+		return false, nil
+	}
+	for _, file := range files {
+		fmt.Printf("Name: %v\n", file.Name())
 	}
 	return true, nil
 }
