@@ -1,11 +1,11 @@
 package main
 
 import (
-	"awesomeProject/src/filesystemPart"
 	"fmt"
 	"golang.org/x/term"
 	_ "golang.org/x/term"
 	"os"
+	"shopify/src/filesystemPart"
 	"strings"
 	"syscall"
 )

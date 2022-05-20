@@ -1,9 +1,9 @@
 package main
 
 import (
-	"awesomeProject/src/filesystemPart"
 	"fmt"
 	"os"
+	"shopify/src/filesystemPart"
 )
 
 func main() {
