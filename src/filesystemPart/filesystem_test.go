@@ -6,16 +6,17 @@ import (
 )
 
 //Test if the initialization of the filesystem works properly
+//TODO: Remember to leave instructions to change root dir and userFileResist
 func TestInitFilesystem(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
+	} //TODO: See Below to changes
+	if fs.userFilePersist != "C:/Users/18645/Documents/temp/users/users.json" { //<=== make sure to change this to
+		t.Fatalf("users info file path is wrong %v", fs.userFileExists) // what was changed in InitFilesystem
 	}
-	if fs.userFilePersist != "C:/Users/18645/Documents/temp/users/users.json" {
-		t.Fatalf("users info file path is wrong %v", fs.userFileExists)
-	}
-	if fs.rootDir != "C:/Users/18645/Documents/temp/users" {
-		t.Fatalf("root directory set for repository is wrong")
+	if fs.rootDir != "C:/Users/18645/Documents/temp/users" { // <=== same here change to root dir
+		t.Fatalf("root directory set for repository is wrong") // root dir in InitFileSystem
 	}
 	if _, err := os.Stat(fs.rootDir); os.IsNotExist(err) {
 		t.Fatalf("Root Directory was not created")
@@ -59,16 +60,17 @@ func TestInitFilesystem2(t *testing.T) {
 
 }
 
+//TODO: Change the added image to something you want
 func TestUser_AddImageToRepository(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
 	}
-	user, ok := fs.userInfo["wil"]
+	user, ok := fs.userInfo["doubleTrouble"]
 	if !ok {
 		t.Fatalf("User should have existed but does not")
 	}
-	_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\goland.png")
+	_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\goland.png") //<=== change to a image that you want and have
 	if err != nil {
 		t.Fatalf("Failed to add image to user repository: %v", err)
 	}
@@ -81,7 +83,7 @@ func TestUser_AddImageToRepository2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
 	}
-	user, ok := fs.userInfo["wil"]
+	user, ok := fs.userInfo["doubleTrouble"]
 	if !ok {
 		t.Fatalf("User should have existed but does not")
 	}
@@ -99,7 +101,7 @@ func TestUser_DeleteImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
 	}
-	user, ok := fs.userInfo["wil"]
+	user, ok := fs.userInfo["doubleTrouble"]
 	if !ok {
 		t.Fatalf("User should have existed but does not")
 	}

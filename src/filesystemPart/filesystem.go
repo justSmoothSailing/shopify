@@ -57,9 +57,9 @@ const key = "super secret key no one knowssss"
 func InitFilesystem() (*Filesystem, error) {
 	var errorCaused error = nil
 	filesystem := Filesystem{userInfo: make(map[string]*User),
-		rootDir: "C:/Users/18645/Documents/temp/users", userMetadata: make(map[string]*Metadata),
+		rootDir: "C:/Users/18645/Documents/temp/users", userMetadata: make(map[string]*Metadata), // <===== change the root dir to what you want
 		userPublicData: make(map[string][]string), rootDirExists: false, userFileExists: false,
-		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}}
+		userFilePersist: "C:/Users/18645/Documents/temp/users/users.json", usersSoFar: Users{}} // <===== also change the user persist file to root dir + "/user.json"
 	filesystem.key = []byte(key)
 	//Check if root directory exists, If not create it
 	_, err := os.Stat(filesystem.rootDir)
