@@ -59,13 +59,24 @@ func TestInitFilesystem2(t *testing.T) {
 
 }
 
-// Keep getting this error but I tried sprintf and string(var) and formatInt
-//still getting the same error
-// This test should find goland.png and delete it from the user
-// repository of user: ad
-// TODO: Check if this works after build (WORKED!)
-
 func TestUser_AddImageToRepository(t *testing.T) {
+	fs, err := InitFilesystem()
+	if err != nil {
+		t.Fatalf("Failed to Initialize Repository %v", err)
+	}
+	user, ok := fs.userInfo["wil"]
+	if !ok {
+		t.Fatalf("User should have existed but does not")
+	}
+	_, err = user.AddImageToRepository("C:\\Users\\18645\\Pictures\\Saved Pictures\\goland.png")
+	if err != nil {
+		t.Fatalf("Failed to add image to user repository: %v", err)
+	}
+}
+
+//Should work since the above test should add the image to the user repository
+// TODO: Check if this works after build (WORKED!)
+func TestUser_AddImageToRepository2(t *testing.T) {
 	fs, err := InitFilesystem()
 	if err != nil {
 		t.Fatalf("Failed to Initialize Repository %v", err)
@@ -79,4 +90,21 @@ func TestUser_AddImageToRepository(t *testing.T) {
 		t.Fatal("image not found in users map")
 	}
 
+}
+
+//Since the above test should work this should delete the image from the
+//user repository
+func TestUser_DeleteImage(t *testing.T) {
+	fs, err := InitFilesystem()
+	if err != nil {
+		t.Fatalf("Failed to Initialize Repository %v", err)
+	}
+	user, ok := fs.userInfo["wil"]
+	if !ok {
+		t.Fatalf("User should have existed but does not")
+	}
+	_, err = user.DeleteImage("goland")
+	if err != nil {
+		t.Fatalf("Failed to delete image from repository %v", err)
+	}
 }

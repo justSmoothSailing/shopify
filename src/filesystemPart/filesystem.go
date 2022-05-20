@@ -533,7 +533,7 @@ func (f *Filesystem) removeUser(u *User) (bool, error) {
 		return false, err
 	}
 
-	//Append image to the array of images and update the json file
+	//get  the array of users and update the json file
 	content, err := json.MarshalIndent(f.usersSoFar.AllUsers, "", "")
 	if err != nil {
 		return false, err
